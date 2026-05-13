@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entre Mar i Terra — Eines interactives</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --mar:#0d3b6e; --mar-mig:#1A5C9A; --mar-clar:#3a89c9;
+  --sorra-clar:#f7f2e6; --verd:#2d6a4f;
+  --text:#1a1a2e; --ombra:rgba(13,59,110,0.13);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Source Sans 3',Arial,sans-serif;background:var(--sorra-clar);color:var(--text);min-height:100vh}
+
+header{
+  background:linear-gradient(135deg,var(--mar) 0%,var(--mar-mig) 55%,var(--mar-clar) 100%);
+  color:#fff;padding:2rem 2rem 1.4rem;position:relative;overflow:hidden
+}
+header::before{
+  content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(255,255,255,0.04) 29px),
+    repeating-linear-gradient(90deg,transparent,transparent 28px,rgba(255,255,255,0.04) 29px)
+}
+.header-inner{position:relative;z-index:1;max-width:940px;margin:0 auto}
+.header-badge{display:inline-block;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:3px 14px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:.7rem;color:rgba(255,255,255,0.9)}
+header h1{font-family:'Playfair Display',Georgia,serif;font-size:2rem;line-height:1.15;margin-bottom:.35rem}
+header h1 em{font-style:italic;color:#a8d4f5}
+header p{font-size:13px;color:rgba(255,255,255,0.75);max-width:540px;line-height:1.5}
+
+nav{background:var(--mar);display:flex;overflow-x:auto;gap:0;border-bottom:3px solid var(--mar-clar)}
+nav button{
+  flex-shrink:0;padding:.75rem 1.4rem;font-size:13px;font-family:'Source Sans 3',Arial,sans-serif;
+  font-weight:600;color:rgba(255,255,255,0.65);background:none;border:none;cursor:pointer;
+  border-bottom:3px solid transparent;margin-bottom:-3px;white-space:nowrap;transition:all .18s
+}
+nav button:hover{color:#fff;background:rgba(255,255,255,0.07)}
+nav button.active{color:#fff;border-bottom-color:var(--mar-clar)}
+
+.panel{display:none;max-width:940px;margin:0 auto;padding:1.5rem 1.2rem 2.5rem}
+.panel.active{display:block}
+.panel-title{font-family:'Playfair Display',Georgia,serif;font-size:1.3rem;color:var(--mar);margin-bottom:.2rem}
+.panel-sub{font-size:12px;color:#666;margin-bottom:1.2rem}
+
+.tool-wrap{background:#fff;border:1px solid #d8cdb0;border-radius:12px;padding:1.2rem 1.2rem 1rem;box-shadow:0 4px 18px var(--ombra)}
+
+/* Botó de descàrrega */
+.dl-area{margin-top:1rem;display:flex;align-items:center;gap:14px;padding:.75rem 1rem;background:#f0f7f4;border:1px solid #b7ddc9;border-radius:8px}
+.dl-btn{
+  display:inline-flex;align-items:center;gap:7px;padding:8px 18px;
+  font-size:13px;font-family:'Source Sans 3',Arial,sans-serif;font-weight:700;
+  background:var(--verd);color:#fff;border:none;border-radius:7px;cursor:pointer;
+  box-shadow:0 2px 8px rgba(45,106,79,0.25);transition:background .15s,transform .1s;white-space:nowrap
+}
+.dl-btn:hover{background:#1e4f38;transform:translateY(-1px)}
+.dl-btn svg{width:16px;height:16px;flex-shrink:0}
+.dl-note{font-size:11px;color:#3a6650;line-height:1.5}
+
+/* Eines compartides */
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:.7rem}
+.tool-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;font-size:12px;font-family:inherit;
+  border:1px solid #c0c8d0;border-radius:6px;background:#f6f8fb;color:#1a2a3a;cursor:pointer;transition:background .12s}
+.tool-btn:hover,.tool-btn.active{background:#dde8f5;border-color:#3a89c9}
+.tool-btn.active{font-weight:700;color:var(--mar)}
+.tool-btn.danger{color:#b00;border-color:#f5b8b8}
+.tool-btn.danger:hover{background:#fff0f0}
+
+/* Eina 1 */
+.esp-layout{display:grid;grid-template-columns:1fr 220px;gap:1.2rem;align-items:start}
+#esp-canvas{border:1.5px solid #c0ccd8;cursor:crosshair;display:block;background:#fff;border-radius:6px}
+.right-col{display:flex;flex-direction:column;gap:.8rem}
+.legend-card{background:#f6f8fb;border:1px solid #d4dce8;border-radius:8px;padding:.85rem}
+.legend-title{font-size:13px;font-weight:700;color:var(--mar);margin-bottom:.6rem}
+.legend-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;border-radius:5px;padding:2px 4px;transition:background .1s}
+.legend-row:hover{background:#e8f0fa}
+.legend-row.sel-row{background:#dde8f5}
+.leg-sym{width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.leg-input{flex:1;font-size:12px;border:1px solid #c8d2de;border-radius:5px;padding:4px 7px;background:#fff;color:#1a1a2e;outline:none;font-family:inherit}
+.leg-input:focus{border-color:var(--mar-clar)}
+.sel-indicator{display:flex;align-items:center;gap:7px;padding:6px 10px;background:#eef3fa;border-radius:6px;font-size:12px;color:#444;border:1px solid #d0dcea}
+.count-row{font-size:11px;color:#778;margin-top:2px}
+
+/* Eixos gràfics */
+.chart-outer{display:flex;align-items:stretch;gap:0;max-width:680px}
+.axis-y-title{writing-mode:vertical-rl;transform:rotate(180deg);font-size:12px;font-weight:700;color:var(--mar);text-align:center;padding-right:5px;flex-shrink:0;padding-bottom:30px}
+.y-col{display:flex;flex-direction:column-reverse;justify-content:space-between;width:22px;flex-shrink:0;padding-bottom:30px;padding-right:3px}
+.y-tick{font-size:10px;color:#444;text-align:right;height:0;line-height:0}
+.chart-right{flex:1;display:flex;flex-direction:column}
+.grid-wrap{position:relative;flex:1;border-left:2.5px solid var(--mar);border-bottom:2.5px solid var(--mar);min-height:280px}
+.g-grid{display:grid;width:100%;height:100%}
+.gcell{border-top:1px dashed #bbc8d8;border-right:1px dashed #bbc8d8;cursor:pointer;background:transparent;transition:background .07s}
+.gcell.filled{background:var(--mar-mig)}
+.gcell:hover:not(.filled){background:#d0e8f8}
+.gcell.filled:hover{background:var(--mar-clar)}
+.x-labels{display:flex;padding-top:5px}
+.x-label{flex:1;text-align:center;font-size:11px;color:#444;line-height:1.3}
+.axis-x-title{text-align:center;font-size:12px;font-weight:700;color:var(--mar);margin-top:4px}
+.count-line{margin-top:.5rem;font-size:11px;color:#667;font-style:italic;min-height:15px}
+.clear-btn{padding:5px 14px;font-size:12px;font-family:inherit;border:1px solid #c00;border-radius:5px;background:#fff;color:#c00;cursor:pointer;margin-top:.5rem}
+.clear-btn:hover{background:#fff0f0}
+
+/* Camps d'entrada */
+.especie-row{display:flex;align-items:center;gap:8px;margin-bottom:1rem}
+.especie-row label,.field-label{font-size:12px;font-weight:700;color:var(--mar);white-space:nowrap}
+.especie-row input,.nom-input,.field-input{font-size:12px;font-family:inherit;border:1px solid #bbb;border-radius:5px;padding:4px 10px;background:#fafafa;color:#1a1a1a;outline:none}
+.especie-row input,.nom-input{width:240px}
+.especie-row input:focus,.nom-input:focus{border-color:var(--mar-mig)}
+
+/* Eina 3 */
+.tabs{display:flex;gap:6px;margin-bottom:1rem}
+.tab{padding:5px 17px;font-size:13px;font-family:inherit;border:1px solid #bbb;border-radius:6px;background:#fff;color:#444;cursor:pointer}
+.tab.active{background:var(--mar);color:#fff;border-color:var(--mar);font-weight:700}
+.especies-box{background:#f0f6ff;border:1px solid #c0d4ee;border-radius:8px;padding:.65rem .9rem;margin-bottom:1rem;display:flex;align-items:center;gap:10px}
+.especies-box label{font-size:12px;font-weight:700;color:var(--mar);white-space:nowrap}
+.especies-box input{font-size:12px;font-family:inherit;border:1px solid #bbb;border-radius:5px;padding:4px 10px;background:#fff;color:#1a1a1a;outline:none;width:220px}
+
+/* Eina 4 */
+canvas#chart4{border-left:2.5px solid var(--mar);border-bottom:2.5px solid var(--mar);display:block;background:#EBF4FC;cursor:crosshair;max-width:100%}
+.entry-area{display:flex;align-items:flex-end;gap:10px;margin-bottom:.8rem;flex-wrap:wrap;background:#f0f6ff;border:1px solid #c0d4ee;border-radius:8px;padding:.7rem .9rem}
+.entry-area .field label{display:block;font-size:12px;font-weight:700;color:var(--mar);margin-bottom:3px}
+.entry-area .field input{width:88px;font-size:13px;font-family:inherit;border:1px solid #bbb;border-radius:5px;padding:5px 8px;background:#fff;color:#1a1a1a;outline:none}
+.entry-area .hint-small{font-size:10px;color:#888;margin-top:2px}
+.add-btn{padding:7px 16px;font-size:13px;font-family:inherit;border:none;border-radius:6px;background:var(--mar);color:#fff;cursor:pointer;font-weight:700}
+.add-btn:hover{background:var(--mar-mig)}
+.err{font-size:11px;color:#c00;min-height:14px;align-self:flex-end}
+.pla-y-col{display:flex;flex-direction:column;justify-content:space-between;width:36px;flex-shrink:0;align-items:flex-end;padding-right:4px}
+.pts-list{margin-top:.6rem;max-height:120px;overflow-y:auto;border:1px solid #c0d4ee;border-radius:7px;background:#f5f9ff;max-width:600px}
+.pt-row{display:flex;align-items:center;gap:10px;padding:4px 12px;border-bottom:.5px solid #dde6f0;font-size:11px;color:var(--mar)}
+.pt-row:last-child{border-bottom:none}
+.pt-del{margin-left:auto;border:none;background:none;color:#c00;cursor:pointer;font-size:14px;padding:0 2px}
+.pts-empty{padding:.5rem .75rem;font-size:11px;color:#aaa;font-style:italic}
+.btns-row{display:flex;gap:8px;margin-top:.5rem}
+.sec-btn{padding:5px 12px;font-size:12px;font-family:inherit;border:1px solid #bbb;border-radius:5px;background:#fff;color:#444;cursor:pointer}
+.sec-btn:hover{background:#f0f0f0}
+
+.hint{margin-top:1rem;font-size:11px;color:#7a6020;line-height:1.6;max-width:700px;background:#fffbe6;border:1px solid #ffe58f;border-radius:6px;padding:.6rem .9rem}
+.hint strong{color:#5a4000}
+
+@media(max-width:640px){
+  .esp-layout{grid-template-columns:1fr}
+  header h1{font-size:1.4rem}
+  nav button{padding:.6rem .85rem;font-size:12px}
+  .chart-outer{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-badge">Crèdit de Síntesi · 3r ESO</div>
+    <h1>Entre <em>Mar</em> i Terra</h1>
+    <p>Eines interactives per a l'estudi forestal i marí. Completa cada gràfic i descarrega'l per adjuntar-lo al teu dossier de Google Docs.</p>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="showPanel('esp')">🌿 Espècies forestals</button>
+  <button onclick="showPanel('alc')">📊 Classes d'alçades</button>
+  <button onclick="showPanel('bar')">📊 Perímetre i alçades</button>
+  <button onclick="showPanel('pla')">🌊 Perfil de platja</button>
+</nav>
+
+<!-- ═══ PANEL 1: DIAGRAMA ESPÈCIES ═══ -->
+<div class="panel active" id="panel-esp">
+  <div class="panel-title">Diagrama d'espècies forestals</div>
+  <p class="panel-sub">Activitat 2 · Estudi forestal — Col·loca els símbols per representar cada espècie a la quadrícula</p>
+  <div class="tool-wrap">
+    <div class="toolbar">
+      <span style="font-size:12px;color:#667;align-self:center;margin-right:4px">Mode:</span>
+      <button class="tool-btn active" id="esp-btn-place" onclick="espSetMode('place')">+ Col·locar</button>
+      <button class="tool-btn" id="esp-btn-move" onclick="espSetMode('move')">↔ Moure</button>
+      <button class="tool-btn" id="esp-btn-erase" onclick="espSetMode('erase')">✕ Esborrar</button>
+      <button class="tool-btn danger" onclick="espClearAll()">Netejar tot</button>
+    </div>
+    <div class="esp-layout">
+      <div><canvas id="esp-canvas" width="500" height="500"></canvas></div>
+      <div class="right-col">
+        <div class="sel-indicator" id="esp-sel-indicator">
+          <div id="esp-sel-preview" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center"></div>
+          <span id="esp-sel-label">Cap seleccionada</span>
+        </div>
+        <div class="legend-card">
+          <div class="legend-title">Llegenda d'espècies</div>
+          <div id="esp-legend-rows"></div>
+        </div>
+        <div class="count-row" id="esp-count-row"></div>
+      </div>
+    </div>
+  </div>
+  <div class="dl-area">
+    <button class="dl-btn" onclick="downloadEsp()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Descarregar diagrama
+    </button>
+    <div class="dl-note">Descarrega el diagrama com a imatge PNG i afegeix-la al teu Google Docs.</div>
+  </div>
+  <div class="hint"><strong>Com usar:</strong> Selecciona una espècie a la llegenda (pots editar el nom). Fes clic a la quadrícula per col·locar el símbol. Usa <em>Moure</em> per reposicionar i <em>Esborrar</em> per eliminar símbols concrets.</div>
+</div>
+
+<!-- ═══ PANEL 2: CLASSES D'ALÇADES ═══ -->
+<div class="panel" id="panel-alc">
+  <div class="panel-title">Classes d'alçades</div>
+  <p class="panel-sub">Activitat 3 · Estudi forestal — Representa el nombre d'arbres per cada classe d'alçada</p>
+  <div class="tool-wrap" id="alc-wrap">
+    <div class="especie-row">
+      <label>Espècie:</label>
+      <input type="text" id="alc-esp" placeholder="ex: Quercus ilex, Pinus halepensis...">
+    </div>
+    <div class="chart-outer">
+      <div class="axis-y-title">nombre d'arbres</div>
+      <div class="y-col" id="alc-yticks"></div>
+      <div class="chart-right">
+        <div class="grid-wrap"><div class="g-grid" id="alc-grid"></div></div>
+        <div class="x-labels" id="alc-xlabels"></div>
+        <div class="axis-x-title">alçada (m)</div>
+      </div>
+    </div>
+    <div class="count-line" id="alc-count"></div>
+    <button class="clear-btn" onclick="alcClear()">Netejar gràfic</button>
+  </div>
+  <div class="dl-area">
+    <button class="dl-btn" onclick="downloadBarChart('alc','classes_alcades')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Descarregar gràfic
+    </button>
+    <div class="dl-note">Descarrega el gràfic com a imatge PNG i afegeix-la al teu Google Docs.</div>
+  </div>
+  <div class="hint"><strong>Com usar:</strong> Fes clic a la cel·la que correspongui al nombre d'arbres de cada classe. La barra es forma de baix cap amunt. Torna a fer clic a la cel·la superior activa per reduir-la.</div>
+</div>
+
+<!-- ═══ PANEL 3: BARRES DOBLE ═══ -->
+<div class="panel" id="panel-bar">
+  <div class="panel-title">Classes perimètriques i d'alçades</div>
+  <p class="panel-sub">Activitat 3 · Estudi forestal — Representa les dues distribucions per espècie</p>
+  <div class="tool-wrap" id="bar-wrap">
+    <div class="especies-box">
+      <label>Espècie:</label>
+      <input type="text" id="bar-especie" placeholder="ex: Quercus ilex, Pinus halepensis...">
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="bar-tab-p" onclick="barSwitch('p')">Classes perimètriques</button>
+      <button class="tab" id="bar-tab-a" onclick="barSwitch('a')">Classes d'alçades</button>
+    </div>
+    <div id="bar-panel-p">
+      <div class="chart-outer">
+        <div class="axis-y-title">nombre d'arbres</div>
+        <div class="y-col" id="bar-yticks-p"></div>
+        <div class="chart-right">
+          <div class="grid-wrap"><div class="g-grid" id="bar-grid-p"></div></div>
+          <div class="x-labels" id="bar-xlabels-p"></div>
+          <div class="axis-x-title">perímetre (cm)</div>
+        </div>
+      </div>
+      <div class="count-line" id="bar-count-p"></div>
+      <button class="clear-btn" onclick="barClear('p')">Netejar gràfic</button>
+    </div>
+    <div id="bar-panel-a" style="display:none">
+      <div class="chart-outer">
+        <div class="axis-y-title">nombre d'arbres</div>
+        <div class="y-col" id="bar-yticks-a"></div>
+        <div class="chart-right">
+          <div class="grid-wrap"><div class="g-grid" id="bar-grid-a"></div></div>
+          <div class="x-labels" id="bar-xlabels-a"></div>
+          <div class="axis-x-title">alçada (m)</div>
+        </div>
+      </div>
+      <div class="count-line" id="bar-count-a"></div>
+      <button class="clear-btn" onclick="barClear('a')">Netejar gràfic</button>
+    </div>
+  </div>
+  <div class="dl-area">
+    <button class="dl-btn" onclick="downloadBarChart('bar','grafic_barres')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Descarregar gràfic
+    </button>
+    <div class="dl-note">Descarrega el gràfic visible (la pestanya activa) com a imatge PNG.</div>
+  </div>
+  <div class="hint"><strong>Com usar:</strong> Selecciona la pestanya que vols omplir. Fes clic a la cel·la que correspon al nombre d'arbres. La barra creix de baix cap amunt.</div>
+</div>
+
+<!-- ═══ PANEL 4: PERFIL PLATJA ═══ -->
+<div class="panel" id="panel-pla">
+  <div class="panel-title">Perfil de profunditat marina</div>
+  <p class="panel-sub">Activitat Camp 2 · Ecologia marina — Transecte de profunditat al 4t quadrant</p>
+  <div class="tool-wrap">
+    <div class="especie-row" style="margin-bottom:.8rem">
+      <label>Nom / grup:</label>
+      <input class="nom-input" type="text" id="pla-nom" placeholder="ex: Grup A — Platja de la Farella">
+    </div>
+    <div class="tabs">
+      <button class="tab active" id="pla-tab-1" onclick="plaSwitch(1)">Platja 1</button>
+      <button class="tab" id="pla-tab-2" onclick="plaSwitch(2)">Platja 2</button>
+    </div>
+    <div class="entry-area">
+      <div class="field">
+        <label>Distància (m)</label>
+        <input type="number" id="pla-x" min="0" max="10" step="0.5" placeholder="0 – 10">
+        <div class="hint-small">Eix X positiu</div>
+      </div>
+      <div class="field">
+        <label>Profunditat (m)</label>
+        <input type="number" id="pla-y" min="0" max="6" step="0.25" placeholder="0 – 6">
+        <div class="hint-small">Valor positiu → eix Y negatiu</div>
+      </div>
+      <button class="add-btn" onclick="plaAdd()">+ Afegir punt</button>
+      <div class="err" id="pla-err"></div>
+    </div>
+    <div class="chart-outer" style="max-width:640px">
+      <div class="axis-y-title" style="padding-bottom:0">Profunditat (m)</div>
+      <div class="pla-y-col" id="pla-ycol"></div>
+      <div class="chart-right">
+        <canvas id="chart4" width="540" height="290"></canvas>
+        <div class="x-labels" id="pla-xlabels"></div>
+        <div class="axis-x-title">Distància des de la vora (m)</div>
+      </div>
+    </div>
+    <p style="font-size:10px;color:#888;font-style:italic;margin-top:3px;text-align:center;max-width:600px">També pots fer clic directament sobre la quadrícula per situar un punt.</p>
+    <div class="pts-list" id="pla-pts-list"><div class="pts-empty">Cap punt introduït encara.</div></div>
+    <div class="btns-row">
+      <button class="sec-btn" onclick="plaUndo()">↩ Desfer últim</button>
+      <button class="clear-btn" onclick="plaClear()">Netejar tot</button>
+    </div>
+  </div>
+  <div class="dl-area">
+    <button class="dl-btn" onclick="downloadPla()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Descarregar perfil
+    </button>
+    <div class="dl-note">Descarrega el perfil de la platja activa com a imatge PNG.</div>
+  </div>
+  <div class="hint"><strong>Com usar:</strong> Introdueix cada mesura del transecte (distància, profunditat). El perfil es dibuixa unint els punts al 4t quadrant. Pots treballar les dues platges per separat.</div>
+</div>
+
+<script>
+/* ── NAV ── */
+function showPanel(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  const idx={esp:0,alc:1,bar:2,pla:3}[id];
+  document.querySelectorAll('nav button')[idx].classList.add('active');
+}
+
+/* ══════════════════════════════════════
+   EINA 1 — DIAGRAMA ESPÈCIES
+══════════════════════════════════════ */
+(function(){
+  const COLS=10,ROWS=10,PAD=2;
+  const cv=document.getElementById('esp-canvas');
+  const ctx=cv.getContext('2d');
+  const CW=cv.width,CH=cv.height;
+  const cW=(CW-PAD*2)/COLS,cH=(CH-PAD*2)/ROWS;
+  const ST='#1A3C5E';
+
+  const SP=[
+    {id:0,label:'Espècie 1',draw:(x,cx,cy,r)=>{x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.strokeStyle=ST;x.lineWidth=1.8;x.stroke()}},
+    {id:1,label:'Espècie 2',draw:(x,cx,cy,r)=>{x.beginPath();x.moveTo(cx,cy-r);x.lineTo(cx+r*.9,cy+r*.7);x.lineTo(cx-r*.9,cy+r*.7);x.closePath();x.strokeStyle=ST;x.lineWidth=1.8;x.stroke()}},
+    {id:2,label:'Espècie 3',draw:(x,cx,cy,r)=>{x.beginPath();x.arc(cx,cy+r*.2,r*.9,Math.PI+.3,-.3);x.strokeStyle=ST;x.lineWidth=1.8;x.stroke()}},
+    {id:3,label:'Espècie 4',draw:(x,cx,cy,r)=>{x.beginPath();x.arc(cx,cy,r*.45,0,Math.PI*2);x.fillStyle=ST;x.fill()}},
+    {id:4,label:'Espècie 5',draw:(x,cx,cy,r)=>{const s=r*1.3;x.strokeStyle=ST;x.lineWidth=1.8;x.strokeRect(cx-s/2,cy-s/2,s,s)}},
+    {id:5,label:'Altres/indeterminades',draw:(x,cx,cy,r)=>{x.beginPath();x.moveTo(cx-r*.5,cy-r*.8);x.bezierCurveTo(cx+r*.9,cy-r*.9,cx+r*.9,cy,cx+r*.3,cy+r*.4);x.bezierCurveTo(cx-r*.3,cy+r*.9,cx-r*.9,cy+r*.5,cx-r*.8,cy-.1);x.closePath();x.strokeStyle=ST;x.lineWidth=1.8;x.stroke()}},
+  ];
+
+  let sel=0,mode='place',placed=[],dragging=null,dox=0,doy=0;
+
+  function drawAll(){
+    ctx.clearRect(0,0,CW,CH);
+    ctx.strokeStyle='rgba(0,0,0,0.1)';ctx.lineWidth=.5;
+    for(let c=0;c<=COLS;c++){const x=PAD+c*cW;ctx.beginPath();ctx.moveTo(x,PAD);ctx.lineTo(x,CH-PAD);ctx.stroke()}
+    for(let r=0;r<=ROWS;r++){const y=PAD+r*cH;ctx.beginPath();ctx.moveTo(PAD,y);ctx.lineTo(CW-PAD,y);ctx.stroke()}
+    placed.forEach(p=>{ctx.save();SP[p.s].draw(ctx,p.cx,p.cy,Math.min(cW,cH)*.32);ctx.restore()});
+    updateCount();
+  }
+  function cellCenter(col,row){return{cx:PAD+col*cW+cW/2,cy:PAD+row*cH+cH/2}}
+  function posCell(ex,ey){const col=Math.floor((ex-PAD)/cW),row=Math.floor((ey-PAD)/cH);if(col<0||col>=COLS||row<0||row>=ROWS)return null;return{col,row}}
+  function nearest(ex,ey,thr){let b=null,d=thr*thr;placed.forEach((p,i)=>{const dd=(p.cx-ex)**2+(p.cy-ey)**2;if(dd<d){d=dd;b=i}});return b}
+
+  cv.addEventListener('mousedown',e=>{
+    const r=cv.getBoundingClientRect(),ex=e.clientX-r.left,ey=e.clientY-r.top;
+    if(mode==='place'){const c=posCell(ex,ey);if(!c)return;const{cx,cy}=cellCenter(c.col,c.row);placed.push({s:sel,cx,cy});drawAll()}
+    else if(mode==='move'){const i=nearest(ex,ey,Math.min(cW,cH)*.55);if(i!==null){dragging=i;dox=ex-placed[i].cx;doy=ey-placed[i].cy;cv.style.cursor='grabbing'}}
+    else if(mode==='erase'){const i=nearest(ex,ey,Math.min(cW,cH)*.55);if(i!==null){placed.splice(i,1);drawAll()}}
+  });
+  cv.addEventListener('mousemove',e=>{if(mode==='move'&&dragging!==null){const r=cv.getBoundingClientRect();placed[dragging].cx=e.clientX-r.left-dox;placed[dragging].cy=e.clientY-r.top-doy;drawAll()}});
+  cv.addEventListener('mouseup',()=>{if(dragging!==null){const p=placed[dragging];const c=posCell(p.cx,p.cy);if(c){const{cx,cy}=cellCenter(c.col,c.row);p.cx=cx;p.cy=cy}dragging=null;cv.style.cursor='crosshair';drawAll()}});
+  cv.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0],r=cv.getBoundingClientRect(),ex=t.clientX-r.left,ey=t.clientY-r.top;if(mode==='place'){const c=posCell(ex,ey);if(!c)return;const{cx,cy}=cellCenter(c.col,c.row);placed.push({s:sel,cx,cy});drawAll()}else if(mode==='erase'){const i=nearest(ex,ey,Math.min(cW,cH)*.7);if(i!==null){placed.splice(i,1);drawAll()}}},{passive:false});
+
+  window.espSetMode=function(m){mode=m;['place','move','erase'].forEach(k=>document.getElementById('esp-btn-'+k).classList.toggle('active',k===m));cv.style.cursor=m==='place'?'crosshair':m==='move'?'grab':'cell'};
+  window.espClearAll=function(){if(confirm('Esborrar tots els símbols?')){placed=[];drawAll()}};
+
+  function setSel(id){sel=id;document.querySelectorAll('#esp-legend-rows .legend-row').forEach((r,i)=>r.classList.toggle('sel-row',i===id));updateSelInd()}
+  function updateSelInd(){
+    const sp=SP[sel];const mc=document.createElement('canvas');mc.width=28;mc.height=28;sp.draw(mc.getContext('2d'),14,14,9);
+    document.getElementById('esp-sel-preview').innerHTML='';document.getElementById('esp-sel-preview').appendChild(mc);
+    const name=document.querySelectorAll('#esp-legend-rows .leg-input')[sel]?.value||sp.label;
+    document.getElementById('esp-sel-label').textContent=name;
+  }
+  function updateCount(){
+    const cnt={};placed.forEach(p=>{cnt[p.s]=(cnt[p.s]||0)+1});
+    const parts=SP.map(sp=>{const n=cnt[sp.id]||0;if(!n)return null;const name=document.querySelectorAll('#esp-legend-rows .leg-input')[sp.id]?.value||sp.label;return`${name}: ${n}`}).filter(Boolean);
+    document.getElementById('esp-count-row').textContent=parts.length?'Recompte: '+parts.join(' · '):'';
+  }
+  function buildLegend(){
+    const cont=document.getElementById('esp-legend-rows');cont.innerHTML='';
+    SP.forEach((sp,i)=>{
+      const row=document.createElement('div');row.className='legend-row';row.onclick=()=>setSel(i);
+      const sym=document.createElement('div');sym.className='leg-sym';
+      const mc=document.createElement('canvas');mc.width=32;mc.height=32;sp.draw(mc.getContext('2d'),16,16,10);sym.appendChild(mc);
+      const inp=document.createElement('input');inp.type='text';inp.className='leg-input';inp.placeholder=sp.label;
+      inp.addEventListener('click',ev=>{ev.stopPropagation();setSel(i)});
+      inp.addEventListener('input',()=>{updateSelInd();updateCount()});
+      row.appendChild(sym);row.appendChild(inp);cont.appendChild(row);
+    });
+  }
+
+  /* DESCÀRREGA: canvas + llegenda al costat */
+  window.downloadEsp=function(){
+    const inputs=document.querySelectorAll('#esp-legend-rows .leg-input');
+    const legW=210,padL=12,padT=14;
+    const tmp=document.createElement('canvas');tmp.width=CW+legW;tmp.height=CH;
+    const tc=tmp.getContext('2d');
+    tc.fillStyle='#fff';tc.fillRect(0,0,tmp.width,tmp.height);
+    tc.drawImage(cv,0,0);
+    // Llegenda
+    tc.fillStyle='#f6f8fb';tc.fillRect(CW,0,legW,CH);
+    tc.strokeStyle='#d4dce8';tc.lineWidth=1;tc.beginPath();tc.moveTo(CW,0);tc.lineTo(CW,CH);tc.stroke();
+    tc.fillStyle='#0d3b6e';tc.font='bold 13px Arial';tc.fillText("Llegenda d'espècies",CW+padL,padT+6);
+    SP.forEach((sp,i)=>{
+      const cy2=padT+28+i*44;
+      const mc=document.createElement('canvas');mc.width=32;mc.height=32;sp.draw(mc.getContext('2d'),16,16,10);
+      tc.drawImage(mc,CW+padL,cy2);
+      tc.fillStyle='#1a1a2e';tc.font='12px Arial';
+      const label=inputs[i]?.value||sp.label;
+      tc.fillText(label,CW+padL+36,cy2+20);
+    });
+    const a=document.createElement('a');a.href=tmp.toDataURL('image/png');a.download='diagrama_especies.png';a.click();
+  };
+
+  buildLegend();drawAll();setSel(0);updateSelInd();
+})();
+
+/* ══════════════════════════════════════
+   EINA 2 — CLASSES D'ALÇADES
+══════════════════════════════════════ */
+(function(){
+  const MAX=15,COLS=['< 4','4-8','8-12','12-16','16-20','> 20'];
+  const state={};COLS.forEach((_,i)=>state[i]=0);
+
+  function build(){
+    const yt=document.getElementById('alc-yticks');yt.innerHTML='';
+    for(let i=MAX;i>=0;i--){const d=document.createElement('div');d.className='y-tick';d.textContent=i;yt.appendChild(d)}
+    const g=document.getElementById('alc-grid');
+    g.style.gridTemplateColumns=`repeat(${COLS.length},1fr)`;g.style.gridTemplateRows=`repeat(${MAX},1fr)`;g.innerHTML='';
+    for(let row=MAX;row>=1;row--){COLS.forEach((_,col)=>{const c=document.createElement('div');c.className='gcell';c.dataset.row=row;c.dataset.col=col;c.onclick=()=>toggle(col,row);g.appendChild(c)})}
+    const xl=document.getElementById('alc-xlabels');xl.innerHTML='';
+    COLS.forEach(l=>{const d=document.createElement('div');d.className='x-label';d.textContent=l;xl.appendChild(d)});
+  }
+  function toggle(col,row){state[col]=(row===state[col])?0:row;render();updateCount()}
+  function render(){document.getElementById('alc-grid').querySelectorAll('.gcell').forEach(c=>c.classList.toggle('filled',parseInt(c.dataset.row)<=state[parseInt(c.dataset.col)]))}
+  function updateCount(){
+    const tot=Object.values(state).reduce((a,b)=>a+b,0);
+    const parts=COLS.map((l,i)=>state[i]>0?`${l}: ${state[i]}`:null).filter(Boolean);
+    document.getElementById('alc-count').textContent=tot?`Total: ${tot} arbres  ·  ${parts.join('  ·  ')}`:''
+  }
+  window.alcClear=function(){COLS.forEach((_,i)=>state[i]=0);render();updateCount()};
+  build();
+})();
+
+/* ══════════════════════════════════════
+   EINA 3 — GRÀFIC BARRES DOBLE
+══════════════════════════════════════ */
+(function(){
+  const MAX=15;
+  const CFG={p:{cols:['< 20','21–40','41–60','61–80','81–100','> 100']},a:{cols:['< 4','4–8','8–12','12–16','16–20','> 20']}};
+  const state={p:{},a:{}};
+
+  function build(k){
+    const cols=CFG[k].cols,N=cols.length;
+    const yt=document.getElementById('bar-yticks-'+k);yt.innerHTML='';
+    for(let i=MAX;i>=0;i--){const d=document.createElement('div');d.className='y-tick';d.textContent=i;yt.appendChild(d)}
+    const g=document.getElementById('bar-grid-'+k);
+    g.style.gridTemplateColumns=`repeat(${N},1fr)`;g.style.gridTemplateRows=`repeat(${MAX},1fr)`;g.innerHTML='';
+    for(let row=MAX;row>=1;row--){cols.forEach((_,col)=>{const c=document.createElement('div');c.className='gcell';c.dataset.row=row;c.dataset.col=col;c.onclick=()=>tog(k,col,row);g.appendChild(c)})}
+    const xl=document.getElementById('bar-xlabels-'+k);xl.innerHTML='';
+    cols.forEach(l=>{const d=document.createElement('div');d.className='x-label';d.textContent=l;xl.appendChild(d)});
+    cols.forEach((_,i)=>state[k][i]=0);
+  }
+  function tog(k,col,row){state[k][col]=(row===state[k][col])?0:row;rend(k);cnt(k)}
+  function rend(k){document.getElementById('bar-grid-'+k).querySelectorAll('.gcell').forEach(c=>c.classList.toggle('filled',parseInt(c.dataset.row)<=state[k][parseInt(c.dataset.col)]))}
+  function cnt(k){
+    const tot=Object.values(state[k]).reduce((a,b)=>a+b,0);
+    const parts=CFG[k].cols.map((l,i)=>state[k][i]>0?`${l}: ${state[k][i]}`:null).filter(Boolean);
+    document.getElementById('bar-count-'+k).textContent=tot?`Total: ${tot} arbres  ·  ${parts.join('  ·  ')}`:''
+  }
+  window.barClear=function(k){CFG[k].cols.forEach((_,i)=>state[k][i]=0);rend(k);cnt(k)};
+  window.barSwitch=function(tab){
+    document.getElementById('bar-panel-p').style.display=tab==='p'?'':'none';
+    document.getElementById('bar-panel-a').style.display=tab==='a'?'':'none';
+    document.getElementById('bar-tab-p').classList.toggle('active',tab==='p');
+    document.getElementById('bar-tab-a').classList.toggle('active',tab==='a');
+  };
+  build('p');build('a');
+})();
+
+/* ══════════════════════════════════════
+   EINA 4 — PERFIL DE PLATJA
+══════════════════════════════════════ */
+(function(){
+  const CW=540,CH=290,PAD={top:10,right:10,bottom:0,left:0};
+  const XM=10,YM=6;
+  const cv=document.getElementById('chart4');
+  const ctx=cv.getContext('2d');
+  const pW=CW-PAD.left-PAD.right,pH=CH-PAD.top-PAD.bottom;
+  const charts={1:[],2:[]};let cur=1;
+
+  function toC(x,y){return{cx:PAD.left+(x/XM)*pW,cy:PAD.top+(y/YM)*pH}}
+
+  function draw(){
+    ctx.clearRect(0,0,CW,CH);ctx.fillStyle='#EBF4FC';ctx.fillRect(0,0,CW,CH);
+    // quadrícula
+    ctx.strokeStyle='rgba(26,92,160,0.15)';ctx.lineWidth=.5;
+    for(let x=0;x<=XM;x+=.5){const cx=PAD.left+(x/XM)*pW;ctx.beginPath();ctx.moveTo(cx,PAD.top);ctx.lineTo(cx,CH);ctx.stroke()}
+    for(let y=0;y<=YM;y+=.25){const cy=PAD.top+(y/YM)*pH;ctx.beginPath();ctx.moveTo(PAD.left,cy);ctx.lineTo(CW-PAD.right,cy);ctx.stroke()}
+    ctx.strokeStyle='rgba(26,92,160,0.35)';ctx.lineWidth=.8;
+    for(let x=0;x<=XM;x+=1){const cx=PAD.left+(x/XM)*pW;ctx.beginPath();ctx.moveTo(cx,PAD.top);ctx.lineTo(cx,CH);ctx.stroke()}
+    for(let y=0;y<=YM;y+=.5){const cy=PAD.top+(y/YM)*pH;ctx.beginPath();ctx.moveTo(PAD.left,cy);ctx.lineTo(CW-PAD.right,cy);ctx.stroke()}
+
+    const pts=charts[cur];
+    if(!pts.length){
+      ctx.fillStyle='rgba(100,140,180,0.5)';ctx.font='italic 12px Arial';ctx.textAlign='center';
+      ctx.fillText('Introdueix els punts per dibuixar el perfil',CW/2,CH/2);return
+    }
+    const s=[...pts].sort((a,b)=>a.x-b.x);
+    ctx.fillStyle='rgba(26,92,160,0.12)';ctx.beginPath();
+    const f=toC(s[0].x,s[0].y);ctx.moveTo(PAD.left,PAD.top);ctx.lineTo(f.cx,PAD.top);ctx.lineTo(f.cx,f.cy);
+    s.slice(1).forEach(p=>{const{cx,cy}=toC(p.x,p.y);ctx.lineTo(cx,cy)});
+    const l=toC(s[s.length-1].x,s[s.length-1].y);ctx.lineTo(CW-PAD.right,l.cy);ctx.lineTo(CW-PAD.right,PAD.top);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#1A3C5E';ctx.lineWidth=2.2;ctx.lineJoin='round';ctx.beginPath();
+    s.forEach((p,i)=>{const{cx,cy}=toC(p.x,p.y);i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy)});ctx.stroke();
+    s.forEach(p=>{const{cx,cy}=toC(p.x,p.y);ctx.fillStyle='#1A3C5E';ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(cx,cy,2,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(26,60,94,0.8)';ctx.font='10px Arial';ctx.textAlign='left';ctx.fillText(`(${p.x},-${p.y})`,cx+5,cy-5)});
+  }
+
+  function buildAxes(){
+    const yc=document.getElementById('pla-ycol');yc.innerHTML='';
+    for(let y=0;y<=YM;y+=.5){const d=document.createElement('div');d.className='y-tick';d.style.fontSize='10px';d.style.color='#444';d.textContent=y===0?'0':'-'+y.toFixed(1);yc.appendChild(d)}
+    const xl=document.getElementById('pla-xlabels');xl.innerHTML='';
+    for(let x=0;x<=XM;x++){const d=document.createElement('div');d.className='x-label';d.textContent=x;xl.appendChild(d)}
+  }
+
+  window.plaAdd=function(){
+    const xv=parseFloat(document.getElementById('pla-x').value),yv=parseFloat(document.getElementById('pla-y').value);
+    const err=document.getElementById('pla-err');
+    if(isNaN(xv)||isNaN(yv)){err.textContent='Introdueix els dos valors.';return}
+    if(xv<0||xv>XM){err.textContent='Distància entre 0 i '+XM+' m.';return}
+    if(yv<0||yv>YM){err.textContent='Profunditat entre 0 i '+YM+' m.';return}
+    if(charts[cur].some(p=>p.x===xv)){err.textContent='Ja hi ha un punt a '+xv+' m.';return}
+    err.textContent='';charts[cur].push({x:xv,y:yv});
+    document.getElementById('pla-x').value='';document.getElementById('pla-y').value='';
+    document.getElementById('pla-x').focus();renderList();draw();
+  };
+  function renderList(){
+    const el=document.getElementById('pla-pts-list'),pts=charts[cur];
+    if(!pts.length){el.innerHTML='<div class="pts-empty">Cap punt introduït encara.</div>';return}
+    el.innerHTML=[...pts].sort((a,b)=>a.x-b.x).map((p,i)=>
+      `<div class="pt-row"><span>Punt ${i+1}</span><span>Dist.: <strong>${p.x} m</strong></span><span>Prof.: <strong>-${p.y} m</strong></span><button class="pt-del" onclick="plaDelete(${p.x})">✕</button></div>`
+    ).join('');
+  }
+  window.plaDelete=function(x){charts[cur]=charts[cur].filter(p=>p.x!==x);renderList();draw()};
+  window.plaUndo=function(){if(!charts[cur].length)return;charts[cur].pop();renderList();draw()};
+  window.plaClear=function(){if(!charts[cur].length)return;if(confirm('Esborrar tots els punts?')){charts[cur]=[];renderList();draw()}};
+  window.plaSwitch=function(n){cur=n;document.getElementById('pla-tab-1').classList.toggle('active',n===1);document.getElementById('pla-tab-2').classList.toggle('active',n===2);document.getElementById('pla-err').textContent='';renderList();draw()};
+
+  cv.addEventListener('click',e=>{
+    const r=cv.getBoundingClientRect(),sx=CW/r.width,sy=CH/r.height;
+    const mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sy;
+    const x=Math.round(((mx-PAD.left)/pW)*XM*2)/2,y=Math.round(((my-PAD.top)/pH)*YM*4)/4;
+    if(x<0||x>XM||y<0||y>YM)return;
+    document.getElementById('pla-x').value=x;document.getElementById('pla-y').value=y;
+  });
+
+  /* DESCÀRREGA PERFIL: afegim títol i nom sobre un canvas temporal */
+  window.downloadPla=function(){
+    const nom=document.getElementById('pla-nom').value||'';
+    const headerH=40;
+    const tmp=document.createElement('canvas');tmp.width=CW;tmp.height=CH+headerH;
+    const tc=tmp.getContext('2d');
+    tc.fillStyle='#fff';tc.fillRect(0,0,tmp.width,tmp.height);
+    tc.fillStyle='#0d3b6e';tc.font='bold 13px Arial';tc.textAlign='left';
+    tc.fillText('Perfil de profunditat marina — Platja '+cur,10,18);
+    if(nom){tc.fillStyle='#555';tc.font='11px Arial';tc.fillText(nom,10,34)}
+    tc.drawImage(cv,0,headerH);
+    const a=document.createElement('a');a.href=tmp.toDataURL('image/png');a.download='perfil_platja_'+cur+'.png';a.click();
+  };
+
+  buildAxes();draw();renderList();
+})();
+
+/* ══════════════════════════════════════
+   DESCÀRREGA GRÀFICS DE BARRES (CSS grid → canvas via SVG)
+   Genera un canvas dibuixant les barres manualment a partir de l'estat intern
+══════════════════════════════════════ */
+window.downloadBarChart=function(tool, filename){
+  // Recollim la configuració i estat de cada eina
+  const configs={
+    alc:{
+      cols:['< 4','4-8','8-12','12-16','16-20','> 20'],
+      getState:function(){
+        const st={};
+        document.getElementById('alc-grid').querySelectorAll('.gcell').forEach(c=>{
+          const col=parseInt(c.dataset.col),row=parseInt(c.dataset.row);
+          if(c.classList.contains('filled')){if(!st[col]||row>st[col])st[col]=row}
+        });
+        return st;
+      },
+      xTitle:'alçada (m)',
+      label:document.getElementById('alc-esp')?.value||'',
+    },
+    bar:{
+      p:{cols:['< 20','21–40','41–60','61–80','81–100','> 100'],xTitle:'perímetre (cm)'},
+      a:{cols:['< 4','4–8','8–12','12–16','16–20','> 20'],xTitle:'alçada (m)'},
+    }
+  };
+
+  // Determinem quina pestanya és activa
+  let cols,xTitle,state={},MAX=15,espLabel='';
+  if(tool==='alc'){
+    cols=configs.alc.cols;xTitle=configs.alc.xTitle;
+    espLabel=document.getElementById('alc-esp')?.value||'';
+    document.getElementById('alc-grid').querySelectorAll('.gcell').forEach(c=>{
+      const col=parseInt(c.dataset.col),row=parseInt(c.dataset.row);
+      if(c.classList.contains('filled')){if(!state[col]||row>state[col])state[col]=row}
+    });
+  } else {
+    // bar: mira quina pestanya és visible
+    const isPeri=document.getElementById('bar-panel-p').style.display!=='none';
+    const k=isPeri?'p':'a';
+    cols=configs.bar[k].cols;xTitle=configs.bar[k].xTitle;
+    espLabel=document.getElementById('bar-especie')?.value||'';
+    document.getElementById('bar-grid-'+k).querySelectorAll('.gcell').forEach(c=>{
+      const col=parseInt(c.dataset.col),row=parseInt(c.dataset.row);
+      if(c.classList.contains('filled')){if(!state[col]||row>state[col])state[col]=row}
+    });
+  }
+
+  // Dibuixem en canvas
+  const N=cols.length;
+  const padL=52,padB=46,padT=50,padR=20;
+  const W=700,H=420;
+  const plotW=W-padL-padR,plotH=H-padT-padB;
+  const barW=plotW/N;
+
+  const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
+  const tc=tmp.getContext('2d');
+  tc.fillStyle='#fff';tc.fillRect(0,0,W,H);
+
+  // Títol
+  tc.fillStyle='#0d3b6e';tc.font='bold 14px Arial';tc.textAlign='left';
+  const titol=tool==='alc'?'Classes d\'alçades':(document.getElementById('bar-panel-p').style.display!=='none'?'Classes perimètriques':'Classes d\'alçades');
+  tc.fillText(titol+(espLabel?' — '+espLabel:''),padL,22);
+
+  // Eixos
+  tc.strokeStyle='#0d3b6e';tc.lineWidth=2.5;
+  tc.beginPath();tc.moveTo(padL,padT);tc.lineTo(padL,H-padB);tc.lineTo(W-padR,H-padB);tc.stroke();
+
+  // Línies horitzontals i etiquetes Y
+  for(let y=0;y<=MAX;y+=5){
+    const cy=H-padB-((y/MAX)*plotH);
+    tc.strokeStyle='rgba(0,0,0,0.1)';tc.lineWidth=.8;
+    tc.beginPath();tc.moveTo(padL,cy);tc.lineTo(W-padR,cy);tc.stroke();
+    tc.fillStyle='#444';tc.font='11px Arial';tc.textAlign='right';
+    tc.fillText(y,padL-5,cy+4);
+  }
+
+  // Etiqueta Y
+  tc.save();tc.translate(14,H/2);tc.rotate(-Math.PI/2);tc.fillStyle='#0d3b6e';tc.font='bold 12px Arial';tc.textAlign='center';tc.fillText('nombre d\'arbres',0,0);tc.restore();
+
+  // Barres
+  cols.forEach((lbl,i)=>{
+    const val=state[i]||0;
+    const x=padL+i*barW+barW*.1;
+    const bw=barW*.8;
+    const bh=(val/MAX)*plotH;
+    const by=H-padB-bh;
+    tc.fillStyle='#1A5C9A';
+    if(bh>0)tc.fillRect(x,by,bw,bh);
+    // nombre a sobre
+    if(val>0){tc.fillStyle='#0d3b6e';tc.font='bold 12px Arial';tc.textAlign='center';tc.fillText(val,x+bw/2,by-4)}
+    // etiqueta X
+    tc.fillStyle='#333';tc.font='11px Arial';tc.textAlign='center';tc.fillText(lbl,x+bw/2,H-padB+14);
+  });
+
+  // Etiqueta X
+  tc.fillStyle='#0d3b6e';tc.font='bold 12px Arial';tc.textAlign='center';tc.fillText(xTitle,W/2,H-6);
+
+  const a=document.createElement('a');a.href=tmp.toDataURL('image/png');a.download=filename+'.png';a.click();
+};
+</script>
+</body>
+</html>
